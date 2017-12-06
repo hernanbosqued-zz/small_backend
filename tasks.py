@@ -1,19 +1,23 @@
 from flask import jsonify, abort, make_response, request
 from app import api
 import json
+import os
 
 
 def open_db():
-    f = open('db.json', 'r')
-    data = json.load(f)
-    f.close()
-    return data
+    if os.path.exists('db.json'):
+        with open('db.json', 'r') as f:
+            data = json.load(f)
+            return data
+    else:
+        data = []
+        save_db(data)
+        return data
 
 
 def save_db(data):
-    file = open('db.json', 'w')
-    json.dump(data, file)
-    file.close()
+    with open('db.json', 'w') as f:
+        json.dump(data, f)
 
 
 @api.errorhandler(404)
@@ -41,8 +45,9 @@ def create_task():
     data = open_db()
     if not request.json or not 'title' in request.json:
         abort(400)
+
     item = {
-        'id': data[-1]['id'] + 1,
+        'id':  data[-1]['id'] + 1 if data else 1,
         'title': request.json['title'],
         'description': request.json.get('description', ""),
         'done': False
@@ -82,3 +87,4 @@ def delete_task(task_id):
     data.remove(task[0])
     save_db(data)
     return jsonify({'result': True})
+

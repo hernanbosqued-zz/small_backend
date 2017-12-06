@@ -1,90 +1,99 @@
 from flask import jsonify, abort, make_response, request
 from app import api
-import json
-import os
+import pymysql as mysql
 
-
-def open_db():
-    if os.path.exists('db.json'):
-        with open('db.json', 'r') as f:
-            data = json.load(f)
-            return data
-    else:
-        data = []
-        save_db(data)
-        return data
-
-
-def save_db(data):
-    with open('db.json', 'w') as f:
-        json.dump(data, f)
+conn = mysql.connect("localhost", "root", "ATLanta1904", "prueba")
+cursor = conn.cursor()
 
 
 @api.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+    return make_response(jsonify({'error': "not found"}))
+
+
+@api.errorhandler(500)
+def internal_server_error(error):
+    return make_response(jsonify({'error': "internal server error"}))
 
 
 @api.route('/tasks/<int:task_id>', methods=['GET'])
 def get_task(task_id):
-    data = open_db()
-    task = [item for item in data if item['id'] == task_id]
-    if len(task) == 0:
+    query = "select * from tasks where id = %d " % task_id
+    cursor.execute(query)
+    result = cursor.fetchone()
+    if result is None:
         abort(404)
-    return jsonify({'task': task})
+    else:
+        return jsonify({'task': result})
 
 
 @api.route('/tasks', methods=['GET'])
 def get_tasks():
-    data = open_db()
-    return jsonify({'tasks': data})
+    cursor.execute("select * from tasks")
+    result = cursor.fetchall()
+    return jsonify({'tasks': result})
 
 
 @api.route('/tasks', methods=['POST'])
 def create_task():
-    data = open_db()
-    if not request.json or not 'title' in request.json:
+    if not request.json or ('title' and 'description') not in request.json:
         abort(400)
 
-    item = {
-        'id':  data[-1]['id'] + 1 if data else 1,
-        'title': request.json['title'],
-        'description': request.json.get('description', ""),
-        'done': False
-    }
-    data.append(item)
-    save_db(data)
-    return jsonify({'task': item}), 201
+    try:
+        query = "insert into tasks values (0, '%s','%s', false)" % (
+            request.json['title'], request.json.get('description', ''))
+        cursor.execute(query)
+        conn.commit()
+        return jsonify({'result': True}), 201
+    except:
+        conn.rollback()
+        abort(500)
 
 
 @api.route('/tasks/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
-    data = open_db()
-    task = [task for task in data if task['id'] == task_id]
-    if len(task) == 0:
-        abort(404)
+    vals = []
+
     if not request.json:
         abort(400)
-    if 'title' in request.json and type(request.json['title']) != str:
+    if 'title' in request.json and type(request.json['title']) is not str:
         abort(400)
+    else:
+        vals.append("title = '%s'" % request.json['title'])
     if 'description' in request.json and type(request.json['description']) is not str:
         abort(400)
+    else:
+        vals.append("description = '%s'" % request.json['description'])
     if 'done' in request.json and type(request.json['done']) is not bool:
         abort(400)
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['done'] = request.json.get('done', task[0]['done'])
-    save_db(data)
-    return jsonify({'task': task[0]})
+    else:
+        vals.append('done = %s' % request.json['done'])
+
+    query = ""
+
+    for val in vals:
+        query = query + val
+        if val is not vals[-1]:
+            query = query + ','
+
+    query = "update tasks set " + query + " where id = %d" % task_id
+
+    try:
+        cursor.execute(query)
+        conn.commit()
+        return jsonify({'result': True})
+    except:
+        conn.rollback()
+        abort(500)
 
 
 @api.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    data = open_db()
-    task = [item for item in data if item['id'] == task_id]
-    if len(task) == 0:
-        abort(404)
-    data.remove(task[0])
-    save_db(data)
-    return jsonify({'result': True})
-
+    try:
+        query = "delete from tasks where id = %d" % task_id
+        cursor.execute(query)
+        conn.commit()
+        return jsonify({'result': True})
+    except:
+        conn.rollback()
+        abort(500)

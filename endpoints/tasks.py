@@ -25,7 +25,7 @@ def internal_server_error(error):
 
 @api.route('/tasks/<int:task_id>', methods=['GET'])
 def get_task(task_id):
-    query = "select * from tasks where id = %d " % task_id
+    query = "SELECT * FROM tasks WHERE id = '%d'" % task_id
     cursor.execute(query)
     result = cursor.fetchone()
     result['done'] = bool(result['done'])
@@ -37,7 +37,8 @@ def get_task(task_id):
 
 @api.route('/tasks', methods=['GET'])
 def get_tasks():
-    cursor.execute("SELECT * FROM tasks")
+    query = "SELECT * FROM tasks"
+    cursor.execute(query)
     results = cursor.fetchall()
     for result in results:
         result['done'] = bool(result['done'])
@@ -50,8 +51,7 @@ def create_task():
         abort(400)
 
     try:
-        query = "insert into tasks values (0, '%s','%s', false)" % (
-            request.json['title'], request.json.get('description', ''))
+        query = "INSERT INTO tasks VALUES (0, '%s','%s', FALSE)" % (request.json['title'], request.json.get('description', ''))
         cursor.execute(query)
         connection.commit()
         return jsonify({'result': True}), 201
@@ -86,7 +86,6 @@ def update_task(task_id):
 
     try:
         cursor.execute(query)
-        connection.commit()
         return jsonify({'result': True})
     except:
         connection.rollback()
@@ -96,7 +95,7 @@ def update_task(task_id):
 @api.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     try:
-        query = "delete from tasks where id = %d" % task_id
+        query = "DELETE FROM tasks WHERE id = '%d'" % task_id
         cursor.execute(query)
         connection.commit()
         return jsonify({'result': True})

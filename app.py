@@ -5,4 +5,4 @@ api = Flask(__name__)
 if __name__ == '__main__':
     from endpoints.tasks import *
 
-    api.run(debug=True)
+    api.run(host="0.0.0.0", debug=True)

@@ -2,8 +2,6 @@ from flask import jsonify, abort, make_response, request
 from app import api
 import pymysql
 
-orig_conv = pymysql.converters.conversions
-
 connection = pymysql.connect(host='localhost',
                              user='root',
                              password='ATLanta1904',

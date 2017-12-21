@@ -15,12 +15,17 @@ cursor = connection.cursor()
 
 @api.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({'error': "not found"}))
+    return make_response(jsonify({'error': "not found"}), 404)
+
+
+@api.errorhandler(400)
+def not_found(error):
+    return make_response(jsonify({'error': "bad request"}), 400)
 
 
 @api.errorhandler(500)
 def internal_server_error(error):
-    return make_response(jsonify({'error': "internal server error"}))
+    return make_response(jsonify({'error': "internal server error"}), 500)
 
 
 @api.route('/tasks/<int:task_id>', methods=['GET'])
@@ -28,10 +33,10 @@ def get_task(task_id):
     query = "SELECT * FROM tasks WHERE id = '%d'" % task_id
     cursor.execute(query)
     result = cursor.fetchone()
-    result['done'] = bool(result['done'])
     if result is None:
         abort(404)
     else:
+        result['done'] = bool(result['done'])
         return jsonify({'task': result})
 
 
@@ -50,12 +55,13 @@ def create_task():
     if not request.json or ('title' and 'description') not in request.json:
         abort(400)
 
-    try:
-        query = "INSERT INTO tasks VALUES (0, '%s','%s', FALSE)" % (request.json['title'], request.json.get('description', ''))
-        cursor.execute(query)
+    query = "INSERT INTO tasks VALUES (0, '%s','%s', FALSE)" % (request.json['title'], request.json.get('description', ''))
+    response = cursor.execute(query)
+
+    if response:
         connection.commit()
         return jsonify({'result': True}), 201
-    except:
+    else:
         connection.rollback()
         abort(500)
 
@@ -84,21 +90,22 @@ def update_task(task_id):
 
     query = "update tasks set " + query + " where id = %d" % task_id
 
-    try:
-        cursor.execute(query)
+    response = cursor.execute(query)
+    if response:
+        connection.commit()
         return jsonify({'result': True})
-    except:
+    else:
         connection.rollback()
-        abort(500)
+        abort(404)
 
 
 @api.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    try:
-        query = "DELETE FROM tasks WHERE id = '%d'" % task_id
-        cursor.execute(query)
+    query = "DELETE FROM tasks WHERE id = '%d'" % task_id
+    response = cursor.execute(query)
+    if response:
         connection.commit()
         return jsonify({'result': True})
-    except:
+    else:
         connection.rollback()
-        abort(500)
+        abort(404)

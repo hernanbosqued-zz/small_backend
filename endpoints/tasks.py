@@ -1,6 +1,8 @@
-from flask import jsonify, abort, make_response, request
-from app import api
+from flask import Flask, jsonify, abort, make_response, request
 import pymysql
+
+api = Flask(__name__)
+
 
 connection = pymysql.connect(host='localhost',
                              user='root',

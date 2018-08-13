@@ -1,10 +1,11 @@
 from app import pymysql, api
 from flask import jsonify, abort, make_response, request
 
-connection = pymysql.connect(host='localhost',
-                             user='hernanbosqued',
-                             password='ATLanta1904',
-                             db='prueba',
+connection = pymysql.connect(host='0.0.0.0',
+                             port=33062,
+                             user='root',
+                             password='root',
+                             db='hernandb',
                              cursorclass=pymysql.cursors.DictCursor)
 
 cursor = connection.cursor()

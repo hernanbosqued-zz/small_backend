@@ -1,8 +1,9 @@
-from app import pymysql, api
+from app import api
+import pymysql
 from flask import jsonify, abort, make_response, request
 
-connection = pymysql.connect(host='0.0.0.0',
-                             port=33062,
+connection = pymysql.connect(host='db',
+                             port=3306,
                              user='root',
                              password='root',
                              db='hernandb',
